@@ -6,13 +6,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.os.Bundle;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -26,19 +24,19 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.util.List;
 
 import ch.supsi.dti.isin.meteoapp.DBManager;
+import ch.supsi.dti.isin.meteoapp.OpenWeatherConnector;
 import ch.supsi.dti.isin.meteoapp.R;
 import ch.supsi.dti.isin.meteoapp.activities.DetailActivity;
-import ch.supsi.dti.isin.meteoapp.activities.MainActivity;
 import ch.supsi.dti.isin.meteoapp.model.LocationsHolder;
 import ch.supsi.dti.isin.meteoapp.model.Location;
 import io.nlopez.smartlocation.OnLocationUpdatedListener;
 import io.nlopez.smartlocation.SmartLocation;
 import io.nlopez.smartlocation.location.config.LocationAccuracy;
 import io.nlopez.smartlocation.location.config.LocationParams;
+
 
 public class ListFragment extends Fragment {
     private RecyclerView mLocationRecyclerView;
@@ -49,8 +47,11 @@ public class ListFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        db = new DBManager(getContext());
+        db = DBManager.getInstance();
+        db.init(getContext());
         db.open();
+
+        OpenWeatherConnector.getInstance().init(getContext());
     }
 
     @Override
@@ -62,15 +63,6 @@ public class ListFragment extends Fragment {
         List<Location> locations = LocationsHolder.get(getActivity()).getLocations();
         mAdapter = new LocationAdapter(locations);
         mLocationRecyclerView.setAdapter(mAdapter);
-
-        Cursor c = db.getAllCities();
-        if(c.moveToFirst()){
-            do{
-                Location loc = new Location();
-                loc.setName(c.getString(1));
-                mAdapter.mLocations.add(loc);
-            }while(c.moveToNext());
-        }
 
         return view;
     }
@@ -93,22 +85,31 @@ public class ListFragment extends Fragment {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String task = String.valueOf(text.getText());
-                        if (task != null){
-                            long id = db.addCity(task);
+                        if (!task.equals("")){
+                            Location location = new Location();
+                            location.setName(task);
 
-                            Toast toast = Toast.makeText(getActivity(),
-                                    "Location added",
-                                    Toast.LENGTH_SHORT);
-                            toast.show();
+                            if(db.exists(location)){
+                                Toast toast = Toast.makeText(getActivity(),
+                                        "Location already present",
+                                        Toast.LENGTH_SHORT);
+                                toast.show();
+                            }else{
+                                Toast toast = Toast.makeText(getActivity(),
+                                        "Location added",
+                                        Toast.LENGTH_SHORT);
+                                toast.show();
 
-                            Location loc = new Location();
-                            loc.setName(task);
-                            mAdapter.mLocations.add(loc);
-                            mAdapter.notifyItemInserted((int) id);
+                                OpenWeatherConnector.getInstance().getWeatherByCityName(location.getName());
+
+                                long id = db.addCity(location);
+                                mAdapter.mLocations.add(location);
+                                mAdapter.notifyItemInserted((int) id);
+                            }
                         }
                     }
                 })
-                .setNegativeButton("Cancell", null)
+                .setNegativeButton("Cancel", null)
                 .create();
         dialog.show();
     }
@@ -117,13 +118,7 @@ public class ListFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_add:
-                Toast toast = Toast.makeText(getActivity(),
-                        "Add a location",
-                        Toast.LENGTH_SHORT);
-                toast.show();
-
                 showAddItemDialog(getContext());
-
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -132,7 +127,7 @@ public class ListFragment extends Fragment {
 
     // Holder
 
-    private class LocationHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+    private class LocationHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
         private TextView mNameTextView;
         private Location mLocation;
 
@@ -142,9 +137,10 @@ public class ListFragment extends Fragment {
             mNameTextView = itemView.findViewById(R.id.name);
         }
 
+
         @Override
         public void onClick(View view) {
-            if(mLocation.getName().equals("GPS")){
+            if(mLocation.getName().equals("Gps")){
 
                 if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 0);
@@ -159,23 +155,26 @@ public class ListFragment extends Fragment {
                                 Toast.LENGTH_SHORT);
                         toast.show();
                     }
+                    else {
+                        LocationParams.Builder builder = new LocationParams.Builder()
+                                .setAccuracy(LocationAccuracy.HIGH);
 
-                    LocationParams.Builder builder = new LocationParams.Builder()
-                            .setAccuracy(LocationAccuracy.HIGH)
-                            .setDistance(0)
-                            .setInterval(5000);
+                        SmartLocation.with(getActivity()).location().oneFix().config(builder.build())
+                                .start(new OnLocationUpdatedListener() {
+                                    @Override
+                                    public void onLocationUpdated(android.location.Location location) {
+                                        Log.i("GPS", "Location" + location);
 
-                    SmartLocation.with(getActivity()).location().oneFix().config(builder.build())
-                            .start(new OnLocationUpdatedListener() {
-                                @Override
-                                public void onLocationUpdated(android.location.Location location) {
-                                    Log.i("GPS", "Location" + location);
-                                    Toast toast = Toast.makeText(getActivity(),
-                                            location.getLatitude() + " " + location.getLongitude(),
-                                            Toast.LENGTH_SHORT);
-                                    toast.show();
-                                }
-                            });
+                                        OpenWeatherConnector.getInstance().getWeatherByCoords(location);
+
+                                        Toast toast = Toast.makeText(getActivity(),
+                                                location.getLatitude() + " " + location.getLongitude(),
+                                                Toast.LENGTH_SHORT);
+                                        toast.show();
+
+                                    }
+                                });
+                    }
                 }
 
 

@@ -8,27 +8,38 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import ch.supsi.dti.isin.meteoapp.model.Location;
+
 public class DBManager {
+
+    private static DBManager instance;
 
     private static final String KEY_ID = "id";
     private static final String CITY = "name";
-    static final String DB_NAME = "Progetto";
-    static final String DB_TABLE = "cities";
-    static final int DB_VERSION = 1;
+    private static final String DB_NAME = "Progetto";
+    private static final String DB_TABLE = "cities";
+    private static final int DB_VERSION = 1;
 
-    private static final String DB_CREATION = "CREATE TABLE cities (id integer primary key autoincrement, " +
+    private static final String DB_CREATION = "CREATE TABLE cities (id varchar(16) primary key, " +
             "name text not null);";
 
-    final Context context;
-    DatabaseHelper DBHelper;
-    SQLiteDatabase db;
+    private Context context;
+    private DatabaseHelper DBHelper;
+    private SQLiteDatabase db;
 
-    public DBManager(Context ctx)
-    {
-        this.context = ctx;
+    public DBManager() {
+    }
+
+    public void init(Context context){
+        this.context = context;
         DBHelper = new DatabaseHelper(context);
     }
 
+    public static DBManager getInstance() {
+        if(instance == null)
+            instance = new DBManager();
+        return instance;
+    }
 
     private static class DatabaseHelper extends SQLiteOpenHelper
     {
@@ -64,17 +75,24 @@ public class DBManager {
         return this;
     }
 
-
     public void close()
     {
         DBHelper.close();
     }
 
+    public boolean exists(Location location){
+        String query = "SELECT * FROM " + DB_TABLE + " WHERE " + CITY + "='" + location.getName() + "'";
 
-    public long addCity(String name)
+        return db.rawQuery(query, null).getCount() > 0;
+    }
+
+
+    public long addCity(Location location)
     {
         ContentValues initialValues = new ContentValues();
-        initialValues.put(CITY, name);
+        initialValues.put(KEY_ID, location.getId().toString());
+        initialValues.put(CITY, location.getName());
+
         return db.insert(DB_TABLE, null, initialValues);
     }
 
@@ -87,7 +105,6 @@ public class DBManager {
     {
         return db.query(DB_TABLE, new String[] {KEY_ID, CITY}, null, null, null, null, null);
     }
-
 
     public Cursor getCity(long id) throws SQLException
     {

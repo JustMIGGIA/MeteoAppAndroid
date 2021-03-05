@@ -19,6 +19,7 @@ public class Location {
     }
 
     public void setName(String name) {
+        name = name.substring(0,1).toUpperCase() + name.substring(1).toLowerCase();
         mName = name;
     }
 
