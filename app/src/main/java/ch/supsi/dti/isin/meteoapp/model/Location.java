@@ -1,17 +1,38 @@
 package ch.supsi.dti.isin.meteoapp.model;
 
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
+
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
+
 import java.util.UUID;
 
+@Entity(tableName = "location")
 public class Location {
-    private UUID Id;
+
+    @NotNull
+    @PrimaryKey(autoGenerate = false)
+    private String id;
+
+    @ColumnInfo(name = "city_name")
     private String mName;
 
-    public UUID getId() {
-        return Id;
+    @Ignore
+    private JSONObject details;
+
+    public Location() {
+        id = UUID.randomUUID().toString();
     }
 
-    public void setId(UUID id) {
-        Id = id;
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -23,7 +44,11 @@ public class Location {
         mName = name;
     }
 
-    public Location() {
-        Id = UUID.randomUUID();
+    public JSONObject getDetails() {
+        return details;
+    }
+
+    public void setDetails(JSONObject details) {
+        this.details = details;
     }
 }

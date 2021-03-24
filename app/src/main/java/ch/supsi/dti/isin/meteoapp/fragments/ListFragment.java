@@ -14,6 +14,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -41,15 +43,14 @@ import io.nlopez.smartlocation.location.config.LocationParams;
 public class ListFragment extends Fragment {
     private RecyclerView mLocationRecyclerView;
     private LocationAdapter mAdapter;
-    private DBManager db;
+    private DBManager dbManager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        db = DBManager.getInstance();
-        db.init(getContext());
-        db.open();
+
+        dbManager = DBManager.getInstance(getContext());
 
         OpenWeatherConnector.getInstance().init(getContext());
     }
@@ -89,23 +90,35 @@ public class ListFragment extends Fragment {
                             Location location = new Location();
                             location.setName(task);
 
-                            if(db.exists(location)){
-                                Toast toast = Toast.makeText(getActivity(),
-                                        "Location already present",
-                                        Toast.LENGTH_SHORT);
-                                toast.show();
-                            }else{
-                                Toast toast = Toast.makeText(getActivity(),
-                                        "Location added",
-                                        Toast.LENGTH_SHORT);
-                                toast.show();
+                            new Thread(() -> {
+                                if(dbManager.locationDao().getLocation(location.getName()) != null){
 
-                                OpenWeatherConnector.getInstance().getWeatherByCityName(location.getName());
+                                    new Handler(Looper.getMainLooper()).post(() -> {
+                                        Toast toast = Toast.makeText(getActivity(),
+                                                "Location already present",
+                                                Toast.LENGTH_SHORT);
+                                        toast.show();
+                                    });
 
-                                long id = db.addCity(location);
-                                mAdapter.mLocations.add(location);
-                                mAdapter.notifyItemInserted((int) id);
-                            }
+                                } else {
+                                    long id = dbManager.locationDao().insertLocation(location);
+
+                                    new Handler(Looper.getMainLooper()).post(() -> {
+                                        Toast toast = Toast.makeText(getActivity(),
+                                                "Location added",
+                                                Toast.LENGTH_SHORT);
+                                        toast.show();
+
+                                        //OpenWeatherConnector.getInstance().getWeatherByCityName(location);
+                                        //Log.i("json", location.getDetails().toString());
+
+                                        mAdapter.mLocations.add(location);
+                                        mAdapter.notifyItemInserted((int) id);
+                                    });
+                                }
+
+                            }).start();
+
                         }
                     }
                 })
@@ -113,6 +126,7 @@ public class ListFragment extends Fragment {
                 .create();
         dialog.show();
     }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -127,16 +141,16 @@ public class ListFragment extends Fragment {
 
     // Holder
 
-    private class LocationHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+    private class LocationHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener{
         private TextView mNameTextView;
         private Location mLocation;
 
         public LocationHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.list_item, parent, false));
             itemView.setOnClickListener(this);
+            itemView.setOnLongClickListener(this);
             mNameTextView = itemView.findViewById(R.id.name);
         }
-
 
         @Override
         public void onClick(View view) {
@@ -160,28 +174,41 @@ public class ListFragment extends Fragment {
                                 .setAccuracy(LocationAccuracy.HIGH);
 
                         SmartLocation.with(getActivity()).location().oneFix().config(builder.build())
-                                .start(new OnLocationUpdatedListener() {
-                                    @Override
-                                    public void onLocationUpdated(android.location.Location location) {
-                                        Log.i("GPS", "Location" + location);
+                                .start(location -> {
+                                    Log.i("GPS", "Location" + location);
 
-                                        OpenWeatherConnector.getInstance().getWeatherByCoords(location);
+                                    //OpenWeatherConnector.getInstance().getWeatherByCoords(location.getLatitude(), location.getLongitude());
 
-                                        Toast toast = Toast.makeText(getActivity(),
-                                                location.getLatitude() + " " + location.getLongitude(),
-                                                Toast.LENGTH_SHORT);
-                                        toast.show();
+                                    Toast toast = Toast.makeText(getActivity(),
+                                            location.getLatitude() + " " + location.getLongitude(),
+                                            Toast.LENGTH_SHORT);
+                                    toast.show();
 
-                                    }
                                 });
                     }
                 }
 
 
             }else{
+                OpenWeatherConnector.getInstance().getWeatherByCityName(mLocation);
                 Intent intent = DetailActivity.newIntent(getActivity(), mLocation.getId());
                 startActivity(intent);
             }
+        }
+
+        @Override
+        public boolean onLongClick(View v) {
+
+            if(!mLocation.getName().equals("Gps")) {
+
+                int index = mAdapter.mLocations.indexOf(mLocation);
+                mAdapter.mLocations.remove(mLocation);
+                mAdapter.notifyItemRemoved(index);
+
+                new Thread( () -> dbManager.locationDao().deleteLocation(mLocation)).start();
+            }
+
+            return true;
         }
 
         public void bind(Location location) {
@@ -193,7 +220,7 @@ public class ListFragment extends Fragment {
     // Adapter
 
     private class LocationAdapter extends RecyclerView.Adapter<LocationHolder> {
-        private List<Location> mLocations;
+        private final List<Location> mLocations;
 
         public LocationAdapter(List<Location> locations) {
             mLocations = locations;

@@ -11,7 +11,7 @@ import ch.supsi.dti.isin.meteoapp.fragments.DetailLocationFragment;
 public class DetailActivity extends SingleFragmentActivity {
     private static final String EXTRA_LOCATION_ID = "ch.supsi.dti.isin.meteoapp.location_id";
 
-    public static Intent newIntent(Context packageContext, UUID locationId) {
+    public static Intent newIntent(Context packageContext, String locationId) {
         Intent intent = new Intent(packageContext, DetailActivity.class);
         intent.putExtra(EXTRA_LOCATION_ID, locationId);
         return intent;
@@ -19,7 +19,7 @@ public class DetailActivity extends SingleFragmentActivity {
 
     @Override
     protected Fragment createFragment() {
-        UUID locationId = (UUID) getIntent().getSerializableExtra(EXTRA_LOCATION_ID);
+        String locationId = (String) getIntent().getSerializableExtra(EXTRA_LOCATION_ID);
         return new DetailLocationFragment().newInstance(locationId);
     }
 }

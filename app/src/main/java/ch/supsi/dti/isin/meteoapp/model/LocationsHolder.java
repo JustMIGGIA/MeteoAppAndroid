@@ -1,11 +1,9 @@
 package ch.supsi.dti.isin.meteoapp.model;
 
 import android.content.Context;
-import android.database.Cursor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import ch.supsi.dti.isin.meteoapp.DBManager;
 
@@ -27,13 +25,13 @@ public class LocationsHolder {
         location.setName("GPS");
         mLocations.add(location);
 
-        Cursor c = DBManager.getInstance().getAllCities();
-        if(c.moveToFirst()){
-            do{
-                Location loc = new Location();
-                loc.setName(c.getString(1));
-                mLocations.add(loc);
-            }while(c.moveToNext());
+        Thread th = new Thread(() -> mLocations.addAll(DBManager.getInstance(context).locationDao().getLocations()));
+
+        th.start();
+        try {
+            th.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
@@ -41,12 +39,11 @@ public class LocationsHolder {
         return mLocations;
     }
 
-    public Location getLocation(UUID id) {
+    public Location getLocation(String id) {
         for (Location location : mLocations) {
             if (location.getId().equals(id))
                 return location;
         }
-
         return null;
     }
 }

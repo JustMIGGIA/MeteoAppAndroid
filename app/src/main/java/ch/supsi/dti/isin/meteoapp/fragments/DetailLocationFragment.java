@@ -7,7 +7,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.util.UUID;
 
 import ch.supsi.dti.isin.meteoapp.R;
 import ch.supsi.dti.isin.meteoapp.model.LocationsHolder;
@@ -19,7 +18,7 @@ public class DetailLocationFragment extends Fragment {
     private Location mLocation;
     private TextView mIdTextView;
 
-    public static DetailLocationFragment newInstance(UUID locationId) {
+    public static DetailLocationFragment newInstance(String locationId) {
         Bundle args = new Bundle();
         args.putSerializable(ARG_LOCATION_ID, locationId);
 
@@ -31,7 +30,7 @@ public class DetailLocationFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        UUID locationId = (UUID) getArguments().getSerializable(ARG_LOCATION_ID);
+        String locationId = (String) getArguments().getSerializable(ARG_LOCATION_ID);
         mLocation = LocationsHolder.get(getActivity()).getLocation(locationId);
     }
 
