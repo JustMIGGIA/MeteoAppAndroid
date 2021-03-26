@@ -26,15 +26,19 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.openweathermap.api.model.currentweather.CurrentWeather;
+
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import ch.supsi.dti.isin.meteoapp.DBManager;
-import ch.supsi.dti.isin.meteoapp.OpenWeatherConnector;
+import ch.supsi.dti.isin.meteoapp.OnTaskCompleted;
+import ch.supsi.dti.isin.meteoapp.OpenWeatherConnectorTask;
 import ch.supsi.dti.isin.meteoapp.R;
 import ch.supsi.dti.isin.meteoapp.activities.DetailActivity;
 import ch.supsi.dti.isin.meteoapp.model.LocationsHolder;
 import ch.supsi.dti.isin.meteoapp.model.Location;
-import io.nlopez.smartlocation.OnLocationUpdatedListener;
 import io.nlopez.smartlocation.SmartLocation;
 import io.nlopez.smartlocation.location.config.LocationAccuracy;
 import io.nlopez.smartlocation.location.config.LocationParams;
@@ -51,8 +55,6 @@ public class ListFragment extends Fragment {
         setHasOptionsMenu(true);
 
         dbManager = DBManager.getInstance(getContext());
-
-        OpenWeatherConnector.getInstance().init(getContext());
     }
 
     @Override
@@ -141,9 +143,10 @@ public class ListFragment extends Fragment {
 
     // Holder
 
-    private class LocationHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener{
+    private class LocationHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
         private TextView mNameTextView;
         private Location mLocation;
+
 
         public LocationHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.list_item, parent, false));
@@ -190,7 +193,14 @@ public class ListFragment extends Fragment {
 
 
             }else{
-                OpenWeatherConnector.getInstance().getWeatherByCityName(mLocation);
+                OpenWeatherConnectorTask openWeatherConnectorTask = new OpenWeatherConnectorTask();
+                CurrentWeather currentWeather;
+                try {
+                    currentWeather = openWeatherConnectorTask.execute(mLocation.getName()).get();
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+
                 Intent intent = DetailActivity.newIntent(getActivity(), mLocation.getId());
                 startActivity(intent);
             }

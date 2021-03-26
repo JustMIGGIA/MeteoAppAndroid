@@ -9,9 +9,19 @@
 
     <TextView
         android:id="@+id/name"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="Title" />
+        android:layout_width="297dp"
+        android:layout_height="78dp"
+        android:autoText="false"
+        android:text="Title"
+        android:textAlignment="textStart"
+        android:textAllCaps="true" />
+
+    <ImageView
+        android:id="@+id/imageView3"
+        android:layout_width="51dp"
+        android:layout_height="78dp"
+        android:layout_weight="1"
+        app:srcCompat="@drawable/x01d2x" />
 
 
 </LinearLayout>
