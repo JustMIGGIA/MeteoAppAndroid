@@ -34,5 +34,4 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation("androidx.room:room-runtime:2.2.6")
     annotationProcessor "androidx.room:room-compiler:2.2.6"
-    implementation group: 'org.openweathermap.java-api', name: 'api-core', version: '1.2'
 }

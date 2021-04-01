@@ -4,8 +4,9 @@ import android.content.Context;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
-import ch.supsi.dti.isin.meteoapp.DBManager;
+import ch.supsi.dti.isin.meteoapp.tasks.UpdateLocationInfoTask;
 
 public class LocationsHolder {
 
@@ -21,16 +22,10 @@ public class LocationsHolder {
 
     private LocationsHolder(Context context) {
         mLocations = new ArrayList<>();
-        Location location = new Location();
-        location.setName("GPS");
-        mLocations.add(location);
-
-        Thread th = new Thread(() -> mLocations.addAll(DBManager.getInstance(context).locationDao().getLocations()));
-
-        th.start();
+        UpdateLocationInfoTask updateLocationInfoTask = new UpdateLocationInfoTask();
         try {
-            th.join();
-        } catch (InterruptedException e) {
+            updateLocationInfoTask.execute(mLocations).get();
+        } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -40,10 +35,10 @@ public class LocationsHolder {
     }
 
     public Location getLocation(String id) {
-        for (Location location : mLocations) {
+        for (Location location : mLocations)
             if (location.getId().equals(id))
                 return location;
-        }
+
         return null;
     }
 }

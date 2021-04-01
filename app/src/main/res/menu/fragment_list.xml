@@ -3,4 +3,9 @@
         android:id="@+id/menu_add"
         android:icon="@android:drawable/ic_menu_add"
         app:showAsAction="ifRoom|withText" />
+    <item
+        android:id="@+id/menu_gps"
+        android:icon="@android:drawable/ic_menu_compass"
+        app:showAsAction="ifRoom|withText"/>
+
 </menu>

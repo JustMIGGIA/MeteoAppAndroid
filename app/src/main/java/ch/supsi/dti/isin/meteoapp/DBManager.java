@@ -8,16 +8,21 @@ import androidx.room.RoomDatabase;
 
 import ch.supsi.dti.isin.meteoapp.model.Location;
 
-@Database(entities = {Location.class}, version = 1, exportSchema = false)
+@Database(entities = {Location.class}, version = 3, exportSchema = false)
 public abstract class DBManager extends RoomDatabase {
 
     public static final String DATABASE_NAME = "location_db";
     private static DBManager instance;
 
-    public static DBManager getInstance(Context context) {
+    public static DBManager init(Context context) {
         if(instance == null)
             instance = Room.databaseBuilder(context.getApplicationContext(),
-                    DBManager.class, DBManager.DATABASE_NAME).build();
+                    DBManager.class, DBManager.DATABASE_NAME)
+                    .build();
+        return instance;
+    }
+
+    public static DBManager getInstance() {
         return instance;
     }
 

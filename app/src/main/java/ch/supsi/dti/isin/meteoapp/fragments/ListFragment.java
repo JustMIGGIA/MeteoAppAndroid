@@ -2,12 +2,11 @@ package ch.supsi.dti.isin.meteoapp.fragments;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -24,17 +23,18 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import org.openweathermap.api.model.currentweather.CurrentWeather;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import ch.supsi.dti.isin.meteoapp.Constants;
 import ch.supsi.dti.isin.meteoapp.DBManager;
-import ch.supsi.dti.isin.meteoapp.OnTaskCompleted;
-import ch.supsi.dti.isin.meteoapp.OpenWeatherConnectorTask;
+import ch.supsi.dti.isin.meteoapp.OnDialogResultListener;
+import ch.supsi.dti.isin.meteoapp.tasks.GetByCoordsTask;
+import ch.supsi.dti.isin.meteoapp.tasks.GetByNameTask;
 import ch.supsi.dti.isin.meteoapp.R;
 import ch.supsi.dti.isin.meteoapp.activities.DetailActivity;
 import ch.supsi.dti.isin.meteoapp.model.LocationsHolder;
@@ -44,7 +44,7 @@ import io.nlopez.smartlocation.location.config.LocationAccuracy;
 import io.nlopez.smartlocation.location.config.LocationParams;
 
 
-public class ListFragment extends Fragment {
+public class ListFragment extends Fragment implements OnDialogResultListener {
     private RecyclerView mLocationRecyclerView;
     private LocationAdapter mAdapter;
     private DBManager dbManager;
@@ -53,8 +53,7 @@ public class ListFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-
-        dbManager = DBManager.getInstance(getContext());
+        dbManager = DBManager.init(getContext());
     }
 
     @Override
@@ -78,22 +77,123 @@ public class ListFragment extends Fragment {
         inflater.inflate(R.menu.fragment_list, menu);
     }
 
-    private void showAddItemDialog(Context c){
-        final EditText text = new EditText(c);
 
-        AlertDialog dialog =  new AlertDialog.Builder(c)
-                .setTitle("Add a new location")
-                .setView(text)
-                .setPositiveButton("Add", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        String task = String.valueOf(text.getText());
-                        if (!task.equals("")){
-                            Location location = new Location();
-                            location.setName(task);
+    /***************************************************************************************
+     *                              LOCATION INSERTION                                     *
+     ***************************************************************************************/
 
+    @Override
+    public void onDialogResult(String result) {
+
+        GetByNameTask getByNameTask = new GetByNameTask();
+        Location location = null;
+
+        try {
+             location = getByNameTask.execute(result).get();
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        if (location == null){
+            Toast.makeText(getActivity(),
+                    "Inexistent location",
+                    Toast.LENGTH_SHORT)
+            .show();
+            return;
+        }
+
+        Location finalLocation = location;
+        new Thread(() -> {
+            if(dbManager.locationDao().getLocation(finalLocation.getName()) != null){
+
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    Toast toast = Toast.makeText(getActivity(),
+                            "Location already present",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                });
+
+            } else {
+                long id = dbManager.locationDao().insertLocation(finalLocation);
+
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    Toast toast = Toast.makeText(getActivity(),
+                            "Location added",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+
+                    mAdapter.mLocations.add(finalLocation);
+                    mAdapter.notifyItemInserted((int) id);
+                });
+            }
+
+        }).start();
+    }
+
+    private void showDialogAndGetresult(final String title, final String message, final String initialText, final OnDialogResultListener listener){
+
+        final EditText editText = new EditText(getContext());
+        editText.setText(initialText);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("Add", (dialog, which) -> {
+                    if(listener != null)
+                        if(!editText.getText().toString().equals(""))
+                            listener.onDialogResult(editText.getText().toString());
+                })
+                .setView(editText)
+                .show();
+    }
+
+
+    /***************************************************************************************
+     *                       GPS PERMISSION AND LOCATION INSERTION                         *
+     ***************************************************************************************/
+
+    private void requestPermission(){
+        if (ContextCompat.checkSelfPermission(this.getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this.getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 0);
+        } else {
+            startLocationListener();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode){
+            case 0:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    startLocationListener();
+                return;
+        }
+    }
+
+    private void startLocationListener(){
+        if(!SmartLocation.with(getActivity()).location().state().isGpsAvailable()){
+            Toast toast = Toast.makeText(getActivity(),
+                    "GPS is disabled",
+                    Toast.LENGTH_SHORT);
+            toast.show();
+        } else {
+            LocationParams.Builder builder = new LocationParams.Builder()
+                    .setAccuracy(LocationAccuracy.HIGH);
+
+            SmartLocation.with(getActivity()).location().oneFix().config(builder.build())
+                    .start(location -> {
+                        Log.i(Constants.GPS, "Location" + location);
+
+                        GetByCoordsTask getByCoordsTask = new GetByCoordsTask();
+
+                        Location loc = null;
+                        try {
+                            loc = getByCoordsTask.execute(location.getLatitude(), location.getLongitude()).get();
+
+
+                            Location finalLoc = loc;
                             new Thread(() -> {
-                                if(dbManager.locationDao().getLocation(location.getName()) != null){
+                                if(dbManager.locationDao().getLocation(finalLoc.getName()) != null){
 
                                     new Handler(Looper.getMainLooper()).post(() -> {
                                         Toast toast = Toast.makeText(getActivity(),
@@ -103,7 +203,7 @@ public class ListFragment extends Fragment {
                                     });
 
                                 } else {
-                                    long id = dbManager.locationDao().insertLocation(location);
+                                    long id = dbManager.locationDao().insertLocation(finalLoc);
 
                                     new Handler(Looper.getMainLooper()).post(() -> {
                                         Toast toast = Toast.makeText(getActivity(),
@@ -111,22 +211,33 @@ public class ListFragment extends Fragment {
                                                 Toast.LENGTH_SHORT);
                                         toast.show();
 
-                                        //OpenWeatherConnector.getInstance().getWeatherByCityName(location);
-                                        //Log.i("json", location.getDetails().toString());
-
-                                        mAdapter.mLocations.add(location);
+                                        mAdapter.mLocations.add(finalLoc);
                                         mAdapter.notifyItemInserted((int) id);
                                     });
                                 }
 
                             }).start();
-
+                        } catch (ExecutionException | InterruptedException e) {
+                            e.printStackTrace();
                         }
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .create();
-        dialog.show();
+
+                        Toast toast = Toast.makeText(getActivity(),
+                                location.getLatitude() + " " + location.getLongitude(),
+                                Toast.LENGTH_SHORT);
+                        toast.show();
+
+                    });
+        }
+    }
+
+    private void addGpsLocation(){
+        if (ContextCompat.checkSelfPermission(this.getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.i(Constants.GPS, "Permission not granted");
+            requestPermission();
+        } else {
+            Log.i(Constants.GPS, "Permission granted");
+            startLocationListener();
+        }
     }
 
 
@@ -134,8 +245,10 @@ public class ListFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_add:
-                showAddItemDialog(getContext());
+                showDialogAndGetresult("Add location", null, "",this);
                 return true;
+            case R.id.menu_gps:
+                addGpsLocation();
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -145,6 +258,8 @@ public class ListFragment extends Fragment {
 
     private class LocationHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
         private TextView mNameTextView;
+        private TextView mDegreeTextView;
+        private ImageView mImageView;
         private Location mLocation;
 
 
@@ -153,70 +268,24 @@ public class ListFragment extends Fragment {
             itemView.setOnClickListener(this);
             itemView.setOnLongClickListener(this);
             mNameTextView = itemView.findViewById(R.id.name);
+            mDegreeTextView = itemView.findViewById(R.id.degrees);
+            mImageView = itemView.findViewById(R.id.image);
         }
 
         @Override
         public void onClick(View view) {
-            if(mLocation.getName().equals("Gps")){
-
-                if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 0);
-                } else {
-                    Log.i("GPS", "Permission granted");
-
-                    if(!SmartLocation.with(getActivity()).location().state().isGpsAvailable()){
-                        Log.i("GPS", "GPS is disabled");
-
-                        Toast toast = Toast.makeText(getActivity(),
-                                "GPS non attivo",
-                                Toast.LENGTH_SHORT);
-                        toast.show();
-                    }
-                    else {
-                        LocationParams.Builder builder = new LocationParams.Builder()
-                                .setAccuracy(LocationAccuracy.HIGH);
-
-                        SmartLocation.with(getActivity()).location().oneFix().config(builder.build())
-                                .start(location -> {
-                                    Log.i("GPS", "Location" + location);
-
-                                    //OpenWeatherConnector.getInstance().getWeatherByCoords(location.getLatitude(), location.getLongitude());
-
-                                    Toast toast = Toast.makeText(getActivity(),
-                                            location.getLatitude() + " " + location.getLongitude(),
-                                            Toast.LENGTH_SHORT);
-                                    toast.show();
-
-                                });
-                    }
-                }
-
-
-            }else{
-                OpenWeatherConnectorTask openWeatherConnectorTask = new OpenWeatherConnectorTask();
-                CurrentWeather currentWeather;
-                try {
-                    currentWeather = openWeatherConnectorTask.execute(mLocation.getName()).get();
-                } catch (ExecutionException | InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                Intent intent = DetailActivity.newIntent(getActivity(), mLocation.getId());
-                startActivity(intent);
-            }
+            Intent intent = DetailActivity.newIntent(getActivity(), mLocation.getId());
+            startActivity(intent);
         }
 
         @Override
         public boolean onLongClick(View v) {
 
-            if(!mLocation.getName().equals("Gps")) {
+            int index = mAdapter.mLocations.indexOf(mLocation);
+            mAdapter.mLocations.remove(mLocation);
+            mAdapter.notifyItemRemoved(index);
 
-                int index = mAdapter.mLocations.indexOf(mLocation);
-                mAdapter.mLocations.remove(mLocation);
-                mAdapter.notifyItemRemoved(index);
-
-                new Thread( () -> dbManager.locationDao().deleteLocation(mLocation)).start();
-            }
+            new Thread( () -> dbManager.locationDao().deleteLocation(mLocation)).start();
 
             return true;
         }
@@ -224,6 +293,10 @@ public class ListFragment extends Fragment {
         public void bind(Location location) {
             mLocation = location;
             mNameTextView.setText(mLocation.getName());
+            mDegreeTextView.setText(mLocation.getTemp() + "°");
+            int id = getContext().getResources().getIdentifier(mLocation.getWeather_icon(), "drawable", getContext().getPackageName());
+            mImageView.setImageResource(id);
+
         }
     }
 
