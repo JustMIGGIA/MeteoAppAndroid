@@ -12,6 +12,10 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -29,10 +33,12 @@ import android.widget.Toast;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import ch.supsi.dti.isin.meteoapp.Constants;
 import ch.supsi.dti.isin.meteoapp.DBManager;
 import ch.supsi.dti.isin.meteoapp.OnDialogResultListener;
+import ch.supsi.dti.isin.meteoapp.UpadateWorker;
 import ch.supsi.dti.isin.meteoapp.tasks.GetByCoordsTask;
 import ch.supsi.dti.isin.meteoapp.tasks.GetByNameTask;
 import ch.supsi.dti.isin.meteoapp.R;

@@ -38,8 +38,8 @@ public class OpenWeatherResponseParser {
             location.setTemp(main.getDouble("temp"));
             location.setTemp_min(main.getDouble("temp_min"));
             location.setTemp_max(main.getDouble("temp_max"));
-            location.setTemp_min(main.getDouble("pressure"));
-            location.setTemp_max(main.getDouble("humidity"));
+            location.setPressure(main.getDouble("pressure"));
+            location.setHumidity(main.getDouble("humidity"));
 
         } catch (JSONException e) {
             e.printStackTrace();

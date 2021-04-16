@@ -5,6 +5,7 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 
@@ -16,7 +17,13 @@ public class DetailLocationFragment extends Fragment {
     private static final String ARG_LOCATION_ID = "location_id";
 
     private Location mLocation;
-    private TextView mIdTextView;
+    private TextView mNameTextView;
+    private ImageView mImageView;
+    private TextView mDescriptionTextView;
+    private TextView mTempTextView;
+    private TextView mMinTempTextView;
+    private TextView mMaxTempTextView;
+
 
     public static DetailLocationFragment newInstance(String locationId) {
         Bundle args = new Bundle();
@@ -38,8 +45,20 @@ public class DetailLocationFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_detail_location, container, false);
 
-        mIdTextView = v.findViewById(R.id.id_textView);
-        mIdTextView.setText(mLocation.getId().toString());
+        mNameTextView = v.findViewById(R.id.name_textView);
+        mImageView = v.findViewById(R.id.image_detail);
+        mDescriptionTextView = v.findViewById(R.id.description_textView);
+        mTempTextView = v.findViewById(R.id.temp_textView);
+        mMinTempTextView = v.findViewById(R.id.min_temp_textView);
+        mMaxTempTextView = v.findViewById(R.id.max_temp_textView);
+
+        mNameTextView.setText(mLocation.getName());
+        int id = getContext().getResources().getIdentifier(mLocation.getWeather_icon(), "drawable", getContext().getPackageName());
+        mImageView.setImageResource(id);
+        mDescriptionTextView.setText(mLocation.getWeather_descr());
+        mTempTextView.setText(mLocation.getTemp() + "°");
+        mMinTempTextView.setText(mLocation.getTemp_min() + "°");
+        mMaxTempTextView.setText(mLocation.getTemp_max() + "°");
 
         return v;
     }

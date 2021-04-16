@@ -19,15 +19,16 @@ import ch.supsi.dti.isin.meteoapp.DBManager;
 import ch.supsi.dti.isin.meteoapp.OpenWeatherResponseParser;
 import ch.supsi.dti.isin.meteoapp.model.Location;
 
-public class UpdateLocationInfoTask extends AsyncTask<List<Location>, Void, Void> {
+public class UpdateLocationInfoTask extends AsyncTask<List<Location>, Void, List<Location>> {
     public UpdateLocationInfoTask() {
     }
 
     @Override
-    protected Void doInBackground(List<Location>... lists) {
+    protected List<Location> doInBackground(List<Location>... lists) {
         List<Location> locations = lists[0];
         locations.addAll(DBManager.getInstance().locationDao().getLocations());
 
+        int index = 0;
         for (Location loc : locations){
             try {
                 URL url = new URL("https://api.openweathermap.org/data/2.5/weather?q="+ loc.getName() +"&units=metric&lang=it&appid=" + Constants.KEY);
@@ -47,18 +48,22 @@ public class UpdateLocationInfoTask extends AsyncTask<List<Location>, Void, Void
 
                 JSONObject jsonObject = new JSONObject(stringBuilder.toString());
 
+                String locId = loc.getId();
                 loc = OpenWeatherResponseParser.getInstance().getLocationInfo(jsonObject);
+                loc.setId(locId);
 
                 Log.i(Constants.OPEN_WEATHER, loc.toString());
 
+                locations.set(index, loc);
+                DBManager.getInstance().locationDao().updateLocation(loc);
 
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
+            index++;
         }
 
-
-        return null;
+        return locations;
     }
 
 }

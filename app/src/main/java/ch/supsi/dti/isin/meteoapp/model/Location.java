@@ -46,7 +46,6 @@ public class Location {
         this.name = name;
     }
 
-
     public String getWeather_descr() {
         return weather_descr;
     }
