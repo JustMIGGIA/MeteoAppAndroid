@@ -4,6 +4,8 @@ package ch.supsi.dti.isin.meteoapp;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.DecimalFormat;
+
 import ch.supsi.dti.isin.meteoapp.model.Location;
 
 public class OpenWeatherResponseParser {
@@ -35,11 +37,11 @@ public class OpenWeatherResponseParser {
                     "2x";
             location.setWeather_icon(stringBuilder);
 
-            location.setTemp(main.getDouble("temp"));
-            location.setTemp_min(main.getDouble("temp_min"));
-            location.setTemp_max(main.getDouble("temp_max"));
-            location.setPressure(main.getDouble("pressure"));
-            location.setHumidity(main.getDouble("humidity"));
+            location.setTemp(Math.floor(main.getDouble("temp") * 10) / 10);
+            location.setTemp_min(Math.floor(main.getDouble("temp_min") * 10) / 10);
+            location.setTemp_max(Math.floor(main.getDouble("temp_max") * 10) / 10);
+            location.setPressure(Math.floor(main.getDouble("pressure") * 10) / 10);
+            location.setHumidity(Math.floor(main.getDouble("humidity") * 10) / 10);
 
         } catch (JSONException e) {
             e.printStackTrace();

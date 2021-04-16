@@ -46,19 +46,20 @@ public class UpadateWorker extends Worker {
                     stringBuilder.append(location.getName().toUpperCase() + " :\n " + "max_temp = " + location.getTemp_max() + "\n");
             }
 
-            Log.i("NOTIFY", "tyest");
+            if(stringBuilder.length() != 0){
+                NotificationCompat.Builder mBuilder = null;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    mBuilder = new NotificationCompat.Builder(getApplicationContext(),"default")
+                            .setSmallIcon(android.R.drawable.ic_menu_day)
+                            .setContentTitle(LocalTime.now().toString())
+                            .setContentText(stringBuilder.toString())
+                            .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                }
 
-            NotificationCompat.Builder mBuilder = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                mBuilder = new NotificationCompat.Builder(getApplicationContext(),"default")
-                        .setSmallIcon(android.R.drawable.ic_menu_day)
-                        .setContentTitle(LocalTime.now().toString())
-                        .setContentText(stringBuilder.toString())
-                        .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                NotificationManagerCompat managerCompat = NotificationManagerCompat.from(getApplicationContext());
+                managerCompat.notify(0, mBuilder.build());
             }
 
-            NotificationManagerCompat managerCompat = NotificationManagerCompat.from(getApplicationContext());
-            managerCompat.notify(0, mBuilder.build());
 
             return Result.success();
         } catch (ExecutionException | InterruptedException e) {
