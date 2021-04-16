@@ -21,8 +21,7 @@ public class DetailLocationFragment extends Fragment {
     private ImageView mImageView;
     private TextView mDescriptionTextView;
     private TextView mTempTextView;
-    private TextView mMinTempTextView;
-    private TextView mMaxTempTextView;
+    private TextView mMinMaxTempTextView;
 
 
     public static DetailLocationFragment newInstance(String locationId) {
@@ -49,16 +48,14 @@ public class DetailLocationFragment extends Fragment {
         mImageView = v.findViewById(R.id.image_detail);
         mDescriptionTextView = v.findViewById(R.id.description_textView);
         mTempTextView = v.findViewById(R.id.temp_textView);
-        mMinTempTextView = v.findViewById(R.id.min_temp_textView);
-        mMaxTempTextView = v.findViewById(R.id.max_temp_textView);
+        mMinMaxTempTextView = v.findViewById(R.id.min_max_temp_textView);
 
         mNameTextView.setText(mLocation.getName());
         int id = getContext().getResources().getIdentifier(mLocation.getWeather_icon(), "drawable", getContext().getPackageName());
         mImageView.setImageResource(id);
         mDescriptionTextView.setText(mLocation.getWeather_descr());
         mTempTextView.setText(mLocation.getTemp() + "°");
-        mMinTempTextView.setText(mLocation.getTemp_min() + "°");
-        mMaxTempTextView.setText(mLocation.getTemp_max() + "°");
+        mMinMaxTempTextView.setText(mLocation.getTemp_min() + "°" + " | " + mLocation.getTemp_max() + "°");
 
         return v;
     }

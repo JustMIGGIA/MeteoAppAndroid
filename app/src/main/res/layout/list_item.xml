@@ -12,16 +12,20 @@
         android:layout_width="198dp"
         android:layout_height="78dp"
         android:autoText="false"
+        android:gravity="center"
         android:text="Title"
         android:textAlignment="textStart"
-        android:textAllCaps="true" />
+        android:textAllCaps="true"
+        android:textSize="20sp" />
 
     <TextView
         android:id="@+id/degrees"
         android:layout_width="100dp"
         android:layout_height="79dp"
         android:layout_weight="1"
-        android:textAlignment="textStart" />
+        android:gravity="center"
+        android:textAlignment="textStart"
+        android:textSize="20sp" />
 
     <ImageView
         android:id="@+id/image"
