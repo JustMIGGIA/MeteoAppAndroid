@@ -22,6 +22,8 @@ public class DetailLocationFragment extends Fragment {
     private TextView mDescriptionTextView;
     private TextView mTempTextView;
     private TextView mMinMaxTempTextView;
+    private TextView mPressureTextView;
+    private TextView mHumidityTextView;
 
 
     public static DetailLocationFragment newInstance(String locationId) {
@@ -49,6 +51,8 @@ public class DetailLocationFragment extends Fragment {
         mDescriptionTextView = v.findViewById(R.id.description_textView);
         mTempTextView = v.findViewById(R.id.temp_textView);
         mMinMaxTempTextView = v.findViewById(R.id.min_max_temp_textView);
+        mPressureTextView = v.findViewById(R.id.pressure_textView);
+        mHumidityTextView = v.findViewById(R.id.humidity_textView);
 
         mNameTextView.setText(mLocation.getName());
         int id = getContext().getResources().getIdentifier(mLocation.getWeather_icon(), "drawable", getContext().getPackageName());
@@ -56,6 +60,8 @@ public class DetailLocationFragment extends Fragment {
         mDescriptionTextView.setText(mLocation.getWeather_descr());
         mTempTextView.setText(mLocation.getTemp() + "°");
         mMinMaxTempTextView.setText(mLocation.getTemp_min() + "°" + " | " + mLocation.getTemp_max() + "°");
+        mPressureTextView.setText(mLocation.getPressure() + " Pa");
+        mHumidityTextView.setText(mLocation.getHumidity() + "%");
 
         return v;
     }

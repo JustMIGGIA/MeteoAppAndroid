@@ -11,7 +11,7 @@ import androidx.work.WorkManager;
 
 import java.util.concurrent.TimeUnit;
 
-import ch.supsi.dti.isin.meteoapp.UpadateWorker;
+import ch.supsi.dti.isin.meteoapp.UpdateWorker;
 import ch.supsi.dti.isin.meteoapp.fragments.ListFragment;
 
 public class MainActivity extends SingleFragmentActivity {
@@ -26,7 +26,7 @@ public class MainActivity extends SingleFragmentActivity {
             mNotificationManager.createNotificationChannel(channel);
         }
 
-        PeriodicWorkRequest periodicWorkRequest = new PeriodicWorkRequest.Builder(UpadateWorker.class,15, TimeUnit.MINUTES).build();
+        PeriodicWorkRequest periodicWorkRequest = new PeriodicWorkRequest.Builder(UpdateWorker.class,15, TimeUnit.MINUTES).build();
         WorkManager.getInstance(this).enqueueUniquePeriodicWork("UPDATE", ExistingPeriodicWorkPolicy.KEEP, periodicWorkRequest);
 
         return new ListFragment();

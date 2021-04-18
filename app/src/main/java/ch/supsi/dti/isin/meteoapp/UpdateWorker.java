@@ -17,13 +17,13 @@ import ch.supsi.dti.isin.meteoapp.model.Location;
 import ch.supsi.dti.isin.meteoapp.model.LocationsHolder;
 import ch.supsi.dti.isin.meteoapp.tasks.UpdateLocationInfoTask;
 
-public class UpadateWorker extends Worker {
+public class UpdateWorker extends Worker {
 
     private static final double TEMP_MIN =  10;
     private static final double TEMP_MAX =  20;
 
 
-    public UpadateWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+    public UpdateWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
     }
 
