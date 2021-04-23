@@ -1,7 +1,6 @@
 package ch.supsi.dti.isin.meteoapp;
 
 import android.content.Context;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -19,9 +18,8 @@ import ch.supsi.dti.isin.meteoapp.tasks.UpdateLocationInfoTask;
 
 public class UpdateWorker extends Worker {
 
-    private static final double TEMP_MIN =  10;
-    private static final double TEMP_MAX =  20;
-
+    private static final double TEMP_MIN =  20;
+    private static final double TEMP_MAX =  30;
 
     public UpdateWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -34,7 +32,8 @@ public class UpdateWorker extends Worker {
         UpdateLocationInfoTask updateLocationInfoTask = new UpdateLocationInfoTask();
         try {
 
-            List<Location> updatedList = updateLocationInfoTask.execute(LocationsHolder.get(getApplicationContext()).getLocations()).get();
+            List<Location> updatedList = LocationsHolder.get(getApplicationContext()).getLocations();
+            updateLocationInfoTask.execute(updatedList).get();
 
             StringBuilder stringBuilder = new StringBuilder();
 
@@ -46,7 +45,7 @@ public class UpdateWorker extends Worker {
                     stringBuilder.append(location.getName().toUpperCase() + " :\n " + "max_temp = " + location.getTemp_max() + "\n");
             }
 
-            if(stringBuilder.length() != 0){
+            if(stringBuilder.length() > 0){
                 NotificationCompat.Builder mBuilder = null;
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     mBuilder = new NotificationCompat.Builder(getApplicationContext(),"default")

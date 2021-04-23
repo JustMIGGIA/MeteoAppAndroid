@@ -26,7 +26,11 @@ public class UpdateLocationInfoTask extends AsyncTask<List<Location>, Void, List
     @Override
     protected List<Location> doInBackground(List<Location>... lists) {
         List<Location> locations = lists[0];
-        locations.addAll(DBManager.getInstance().locationDao().getLocations());
+
+        if(locations.isEmpty())
+            locations.addAll(DBManager.getInstance().locationDao().getLocations());
+        else
+            locations = DBManager.getInstance().locationDao().getLocations();
 
         int index = 0;
         for (Location loc : locations){
